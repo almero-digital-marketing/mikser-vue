@@ -2,6 +2,7 @@ module.exports = function (mikser) {
 	var config = {
 		devtool: '#source-map',
 		target: 'node',
+		profile: true,
 		resolve: {
 			modules: [mikser.options.workingFolder, 'node_modules'],
 			extensions: ['.js', '.vue'],

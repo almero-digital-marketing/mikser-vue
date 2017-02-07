@@ -6,9 +6,10 @@ var fs = require("fs-extra-promise")
 var _ = require('lodash')
 var traverse = require('traverse')
 var mask = require('json-mask')
+var Promise = require('bluebird');
 
-var baseRender = require('render/base')
-var applicationRender = require('render/application')
+var baseRender = require('./render/base')
+var applicationRender = require('./render/application')
 
 var Vue = require('vue');
 var vueServerRenderer = require('vue-server-renderer');
@@ -17,23 +18,13 @@ var vueRenderer = vueServerRenderer.createRenderer();
 module.exports = function (mikser) {
 	var plugin = {
 	}
-	if (cluster.isMaster) {
-		// var invalidateCache = (entity) => {
-		// 	if (path.extname(entity._id) == '.vue') {
-		// 		mikser.broker.broadcast('mikser.plugins.vue.invalidateCache');
-		// 	}
-		// }
-		// mikser.on('mikser.manager.importLayout', invalidateCache);
-		// mikser.on('mikser.manager.importView', invalidateCache);
-		// mikser.on('mikser.manager.deleteLayout', invalidateCache);
-		// mikser.on('mikser.manager.deleteView', invalidateCache);
-	}
 	mikser.generator.engines.push({
 		extensions: ['vue'],
 		pattern: '**/*.vue', 
 		render: function(context) {
 			if (!context.layout || !context.layout.template) return context.content;
-
+			let layoutSource = context.layout.source
+			let layoutId = context.layout._id
 			let state = {
 				entity: _.cloneDeep(context.entity),
 				layout: _.cloneDeep(context.layout),
@@ -59,14 +50,19 @@ module.exports = function (mikser) {
 				}));
 			} else {
 				return context.async(baseRender(context, state).then((output) => {
-					output.stats.errors.forEach(err => mikser.diagnostics.log('error', err)
-					output.stats.warnings.forEach(err => mikser.diagnostics.log('warning', err)
+					output.stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
+					output.stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
 
-					return output.content;
-				});
+
+					let modules = output.stats.modules
+						.map((module) => path.resolve(path.join(mikser.options.workingFolder, module.name)))
+						.filter((module) => _.startsWith(module, mikser.config.layoutsFolder) || _.startsWith(module, mikser.config.filesFolder) || _.startsWith(module, mikser.config.sharedFolder) || _.startsWith(module, mikser.config.pluginsFolder))
+						.filter((module) => module != layoutSource)
+					return Promise.map(modules, (module) => mikser.database.layouts.update({_id: layoutId}, { $push: { modules: { $each: modules}}})).return(output.content)
+				}))
 			}
 		}
-	});
-	return Promise.resolve(plugin);
+	})
+	return Promise.resolve(plugin)
 
 }

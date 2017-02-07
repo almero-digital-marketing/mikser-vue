@@ -2,9 +2,11 @@ var webpackConfig = require('../webpack/base')
 var MemoryFS = require('memory-fs')
 var serialize = require('serialize-javascript')
 var mfs = new MemoryFS()
+var path = require('path')
 var vm = require('vm')
 var Vue = require('vue')
 var vueServerRenderer = require('vue-server-renderer')
+var webpack = require('webpack')
 var vueRenderer = vueServerRenderer.createRenderer()
 
 module.exports = function (context, state) {
@@ -30,7 +32,7 @@ module.exports = function (context, state) {
 	});
 
 	return sourceCode.then((output) => {
-		const vueConfig = vm.runInNewContext(source.code, {module});
+		const vueConfig = vm.runInNewContext(output.code, {module});
 		const dataMixin = {
 			beforeCreate() {
 				const data = typeof this.$options.data === 'function'
