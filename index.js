@@ -25,6 +25,7 @@ module.exports = function (mikser) {
 			if (!context.layout || !context.layout.template) return context.content;
 			let layoutSource = context.layout.source
 			let layoutId = context.layout._id
+			let compile = context.layout.meta.compile;
 			let state = {
 				entity: _.cloneDeep(context.entity),
 				layout: _.cloneDeep(context.layout),
@@ -35,8 +36,14 @@ module.exports = function (mikser) {
 			delete state.entity.guide
 
 			if (context.layout.meta.mask) {
-				state = mask(state, context.layout.meta.mask)
+				let normalizedMask = context.layout.meta.mask
+					.split(',').map((segment) => segment.trim()).join(',')
+					.split('(').map((segment) => segment.trim()).join('(')
+					.split(')').map((segment) => segment.trim()).join(')')
+					.split('/').map((segment) => segment.trim()).join('/')
+				state = mask(state, normalizedMask)
 			}
+			state.ptr = _.trimEnd(context.href('/'), '/')
 
 			traverse(state).forEach(function (value) {
 				if (_.isString(value)) {
@@ -53,12 +60,17 @@ module.exports = function (mikser) {
 					output.stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
 					output.stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
 
-
 					let modules = output.stats.modules
 						.map((module) => path.resolve(path.join(mikser.options.workingFolder, module.name)))
 						.filter((module) => _.startsWith(module, mikser.config.layoutsFolder) || _.startsWith(module, mikser.config.filesFolder) || _.startsWith(module, mikser.config.sharedFolder) || _.startsWith(module, mikser.config.pluginsFolder))
 						.filter((module) => module != layoutSource)
-					return Promise.map(modules, (module) => mikser.database.layouts.update({_id: layoutId}, { $push: { modules: { $each: modules}}})).return(output.content)
+					return Promise.map(modules, (module) => mikser.database.layouts.update({_id: layoutId}, { $push: { modules: { $each: modules}}}))
+					.then(() => {
+						if (compile) {
+							return mikser.tools.compile(path.join(mikser.options.workingFolder, compile))
+						}
+					})
+					.return(output.content)
 				}))
 			}
 		}

@@ -30,7 +30,6 @@ module.exports = function (context, state) {
 			});
 		});
 	});
-
 	return sourceCode.then((output) => {
 		const vueConfig = vm.runInNewContext(output.code, {module});
 		const dataMixin = {
