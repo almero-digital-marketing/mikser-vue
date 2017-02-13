@@ -12,12 +12,11 @@ var baseRender = require('./render/base')
 var applicationRender = require('./render/application')
 
 var Vue = require('vue');
-var vueServerRenderer = require('vue-server-renderer');
-var vueRenderer = vueServerRenderer.createRenderer();
 
 module.exports = function (mikser) {
 	var plugin = {
 	}
+
 	mikser.generator.engines.push({
 		extensions: ['vue'],
 		pattern: '**/*.vue', 
@@ -51,6 +50,21 @@ module.exports = function (mikser) {
 				}
 			});
 
+			if (context.layout.meta.prerender) {
+				if (context.layout.meta.prerender.blocks) {
+					state.blocks = {}
+					for (let block of context.layout.meta.prerender.blocks) {
+						state.blocks[block] = context.blocks[block]()
+					}
+				}
+				if (context.layout.meta.prerender.partials) {
+					state.partials = {}
+					for (let partial of context.layout.meta.prerender.partials) {
+						state.partials[partial] = context.partials[partial]()
+					}
+				}
+			}
+
 			if (context.layout.meta.app) {
 				return context.async(applicationRender(context, state).then((output) => {
 					return output.content;
@@ -76,5 +90,4 @@ module.exports = function (mikser) {
 		}
 	})
 	return Promise.resolve(plugin)
-
 }
