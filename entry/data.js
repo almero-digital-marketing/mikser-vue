@@ -26,11 +26,11 @@ dataMixin.install = (Vue, options) => {
 	Vue.mixin({
 		beforeCreate() {
 			if (this.$isServer) return;
-			const initData = window.__VUE_INITIAL_DATA__ || {};
+			const initalData = window.__VUE_INITIAL_DATA__ || {};
 			const data = typeof this.$options.data === 'function'
 			? this.$options.data.call(this)
 			: this.$options.data || {};
-			this.$options.data = Object.assign(data, initData);
+			this.$options.data = Object.assign(data, initalData);
 		}
 	});
 };
