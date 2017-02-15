@@ -1,20 +1,17 @@
 'use strict'
 
 var path = require('path')
-var cluster = require('cluster')
 var fs = require("fs-extra-promise")
 var _ = require('lodash')
 var Promise = require('bluebird');
-var extend = require('node.extend');
 var webpack = require('webpack');
 
-var webpackServer = require('./webpack/server');
+var webpackConfig = require('./webpack.config');
 var MemoryFS = require('memory-fs');
 var mfs = new MemoryFS();
-var path = require('path');
 
-var ssr = require('./render/server-renderer')
-var csr = require('./render/client-renderer')
+var ssr = require('./entry/server')
+var csr = path.join(__dirname, '/entry/client.js')
 
 var Vue = require('vue');
 
@@ -23,11 +20,12 @@ module.exports = function (mikser) {
 	}
 
 	mikser.on('mikser.manager.importLayout', (layout) => {
-		if (_.endsWith(layout.source, '.vue')){
+		if (_.endsWith(layout.source, '.vue') && layout.meta.app){
 			var debug = mikser.debug('vue');
-			var ssrConfig = webpackServer(mikser)
-			let compile = layout.meta.compile;
+			var ssrConfig = webpackConfig(mikser)
 			ssrConfig.entry = layout.source;
+			ssrConfig.target = 'node';
+			ssrConfig.profile = true;
 			ssrConfig.output = {
 				path: path.dirname(layout.source),
 				filename: path.basename(layout.source),
@@ -49,6 +47,38 @@ module.exports = function (mikser) {
 						.filter((module) => module != layout.source)
 						resolve();
 				});
+			}).then(() => {
+				var csrConfig = webpackConfig(mikser)
+				csrConfig.entry = csr;
+				csrConfig.resolve.alias.app = layout.source;
+				if (!mikser.options.debug) {
+					csrConfig.plugins.push(new webpack.DefinePlugin({ 'process.env': { NODE_ENV: '"production"' } }));
+				}
+				if (layout.meta.app === true) {
+					layout.meta.app = path.join(path.dirname(layout._id), path.basename(layout.source, '.vue') + '.js');
+					csrConfig.output = {
+						path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
+						filename: path.basename(layout.source, '.vue') + '.js',
+					}
+				} else if (_.isString(layout.meta.app)) {
+					csrConfig.output = {
+						path: path.join(mikser.config.runtimeFilesFolder, layout.meta.app),
+						filename: path.basename(layout.meta.app),
+					}
+				}
+				mikser.config.watcher.ignored.push('**' + layout.meta.app);
+				let clientCompiler = webpack(csrConfig)
+				return new Promise((resolve, reject) => {
+					clientCompiler.run((err, stats) => {
+						if (err) return reject(err);
+						stats = stats.toJson()
+						stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
+						stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
+						resolve();
+					});
+				});
+			}).then(() => {
+				mikser.tools.runtimeSync();
 			});
 		}
 	})

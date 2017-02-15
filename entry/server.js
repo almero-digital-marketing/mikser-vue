@@ -10,8 +10,6 @@ module.exports = function (context) {
 	var debug = context.mikser.debug('vue')
 
 	const vueConfig = vm.runInNewContext(context.layout.code, {module});
-	console.log(vueConfig);
-
 	const data = typeof vueConfig.data === 'function'
 		? vueConfig.data.call(context)
 		: vueConfig.data || {};
@@ -56,12 +54,9 @@ module.exports = function (context) {
 	} else {
 		vueConfig.mixins = [dataMixin];
 	}
-	let vueInstance = new Vue(vueConfig);
-	let clientCompile = Promise.resolve();
-
 	return new Promise((resolve, reject) => {
+		let vueInstance = new Vue(vueConfig);
 		vueRenderer.renderToString(vueInstance, (err, result) => {
-			console.log(initalData)
 			if (err) return reject(err);
 			let init = `<script>window.__VUE_INITIAL_DATA__ = ${serialize(initalData, {isJSON: true})};</script>`;
 			let content = init + result;
