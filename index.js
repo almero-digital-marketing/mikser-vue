@@ -16,9 +16,6 @@ var csr = path.join(__dirname, '/entry/client.js')
 var Vue = require('vue');
 
 module.exports = function (mikser) {
-	var plugin = {
-	}
-
 	function build(layout) {
 		if (_.endsWith(layout.source, '.vue') && layout.meta.app){
 			var debug = mikser.debug('vue');
@@ -87,12 +84,24 @@ module.exports = function (mikser) {
 		return Promise.resolve(false);
 	}
 
+	function reloadModules(file) {
+		return mikser.database.findLayouts({modules: { $in: [file]}}).then((layouts) => {
+			return Promise.map(layouts, (layout) => {
+				return mikser.scheduler.scheduleLayout(layout._id);
+			});
+		});
+	}
+
 	mikser.on('mikser.scheduler.scheduleLayout', (layout) => {
 		return build(layout).then((stats) => {
 			if (stats) return mikser.database.layouts.save(layout);
 		})
 	});
 	mikser.on('mikser.manager.importLayout', build);
+
+	mikser.on('mikser.watcher.layoutAction', (event, file) => reloadModules(path.join(mikser.config.layoutsFolder,file)));
+	mikser.on('mikser.watcher.fileAction', (event, file) => reloadModules(file));
+	mikser.on('mikser.watcher.pluginsAction', (event, file) => reloadModules(path.join(mikser.config.pluginsFolder,file)));
 
 	mikser.generator.engines.push({
 		extensions: ['vue'],
@@ -102,5 +111,4 @@ module.exports = function (mikser) {
 			return context.async(ssr(context))
 		}
 	})
-	return Promise.resolve(plugin)
 }

@@ -10,10 +10,11 @@ module.exports = function (context) {
 	var debug = context.mikser.debug('vue')
 
 	const vueConfig = vm.runInNewContext(context.layout.code, {module});
+	if (vueConfig.generate) vueConfig.generate(context)
+
 	const data = typeof vueConfig.data === 'function'
 		? vueConfig.data.call(context)
 		: vueConfig.data || {};
-
 	let initalData = {}
 	traverse(data).forEach(function (x) {
 		let objectPath = this.path.slice();
@@ -27,6 +28,7 @@ module.exports = function (context) {
 		} else {
 			let path = this.path.join('.');
 			let origin = _.get(context, path);
+			if (origin == undefined) return;
 			if (_.isArray(x)) {
 				_.set(initalData, path, origin);
 			} else if (_.isObject(x)) {
@@ -39,7 +41,6 @@ module.exports = function (context) {
 		}
 	});
 	initalData.ptr = _.trimEnd(context.href('/'), '/')
-	if (vueConfig.generate) vueConfig.generate(context)
 
 	const dataMixin = {
 		beforeCreate() {
