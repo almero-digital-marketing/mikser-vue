@@ -19,7 +19,7 @@ module.exports = function (mikser) {
 	var plugin = {
 	}
 
-	mikser.on('mikser.manager.importLayout', (layout) => {
+	function build(layout) {
 		if (_.endsWith(layout.source, '.vue') && layout.meta.app){
 			var debug = mikser.debug('vue');
 			var ssrConfig = webpackConfig(mikser)
@@ -62,11 +62,14 @@ module.exports = function (mikser) {
 					}
 				} else if (_.isString(layout.meta.app)) {
 					csrConfig.output = {
-						path: path.join(mikser.config.runtimeFilesFolder, layout.meta.app),
+						path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout.meta.app)),
 						filename: path.basename(layout.meta.app),
 					}
 				}
-				mikser.config.watcher.ignored.push('**' + layout.meta.app);
+				let appPattern = '**' + layout.meta.app;
+				if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {
+					mikser.config.watcher.ignored.push(appPattern);
+				}
 				let clientCompiler = webpack(csrConfig)
 				return new Promise((resolve, reject) => {
 					clientCompiler.run((err, stats) => {
@@ -77,11 +80,19 @@ module.exports = function (mikser) {
 						resolve();
 					});
 				});
-			}).then(() => {
-				mikser.tools.runtimeSync();
-			});
+			})
+			.then(() => mikser.tools.runtimeSync())
+			.return(true);
 		}
-	})
+		return Promise.resolve(false);
+	}
+
+	mikser.on('mikser.scheduler.scheduleLayout', (layout) => {
+		return build(layout).then((stats) => {
+			if (stats) return mikser.database.layouts.save(layout);
+		})
+	});
+	mikser.on('mikser.manager.importLayout', build);
 
 	mikser.generator.engines.push({
 		extensions: ['vue'],
