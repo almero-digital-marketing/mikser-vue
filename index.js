@@ -19,8 +19,13 @@ module.exports = function (mikser) {
 	function build(layout) {
 		if (_.endsWith(layout.source, '.vue') && layout.meta.app){
 			var debug = mikser.debug('vue');
+			if (layout.meta.app === true) {
+				layout.meta.app = path.basename(layout.source, '.vue');
+			}
 			var ssrConfig = webpackConfig(mikser)
-			ssrConfig.entry = layout.source;
+			ssrConfig.entry = {
+				app: layout.source
+			}
 			ssrConfig.target = 'node';
 			ssrConfig.profile = true;
 			ssrConfig.output = {
@@ -49,19 +54,19 @@ module.exports = function (mikser) {
 				csrConfig.entry = csr;
 				csrConfig.resolve.alias.app = layout.source;
 				if (!mikser.options.debug) {
-					csrConfig.plugins.push(new webpack.DefinePlugin({ 'process.env': { NODE_ENV: '"production"' } }));
+					csrConfig.plugins.push(new webpack.DefinePlugin({ 
+						'process.env': { 
+							NODE_ENV: '"production"',
+							VUE_APP: '"' + layout.meta.app + '"' 
+						} 
+					}));
 				}
-				if (layout.meta.app === true) {
-					layout.meta.app = path.join(path.dirname(layout._id), path.basename(layout.source, '.vue') + '.js');
-					csrConfig.output = {
-						path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
-						filename: path.basename(layout.source, '.vue') + '.js',
-					}
-				} else if (_.isString(layout.meta.app)) {
-					csrConfig.output = {
-						path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout.meta.app)),
-						filename: path.basename(layout.meta.app),
-					}
+				csrConfig.output = {
+					path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
+					filename: path.basename(layout.meta.app) + '.js',
+				}
+				layout.meta.vue = {
+					app: path.join(path.dirname(layout._id), layout.meta.app + '.js')
 				}
 				let appPattern = '**' + layout.meta.app;
 				if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {

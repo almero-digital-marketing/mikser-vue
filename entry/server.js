@@ -59,8 +59,9 @@ module.exports = function (context) {
 		let vueInstance = new Vue(vueConfig);
 		vueRenderer.renderToString(vueInstance, (err, result) => {
 			if (err) return reject(err);
-			let init = `<script>window.__VUE_INITIAL_DATA__ = ${serialize(initalData, {isJSON: true})};</script>`;
-			let content = init + result;
+			let init = `<script>window.VUE_INITIAL_DATA_${context.layout.meta.app.toUpperCase()} = ${serialize(initalData, {isJSON: true})};</script>`;
+			let app = `<script src="${initalData.ptr + context.layout.meta.vue.app}" async></script>`;
+			let content = init + result + app;
 			resolve(content);
 		})
 	})

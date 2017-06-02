@@ -26,7 +26,7 @@ dataMixin.install = (Vue, options) => {
 	Vue.mixin({
 		beforeCreate() {
 			if (this.$isServer) return;
-			const initalData = window.__VUE_INITIAL_DATA__ || {};
+			const initalData = window['VUE_INITIAL_DATA_' + process.env.VUE_APP.toUpperCase()] || {};
 			const data = typeof this.$options.data === 'function'
 			? this.$options.data.call(this)
 			: this.$options.data || {};

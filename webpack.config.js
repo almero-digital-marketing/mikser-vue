@@ -12,7 +12,8 @@ module.exports = function (mikser) {
 				'plugins': mikser.config.pluginsFolder,
 			}
 		},
-		plugins: [],
+		plugins: [
+		],
 		module: {
 			rules: [{
 				test: mikser.config.layoutsFolder,
