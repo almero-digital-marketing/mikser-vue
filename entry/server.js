@@ -12,6 +12,10 @@ module.exports = function (context) {
 	const vueConfig = vm.runInNewContext(context.layout.code, {module});
 	if (vueConfig.generate) vueConfig.generate(context)
 
+	if (typeof vueConfig.init === 'function') {
+		vueConfig.init(Vue)
+	}
+
 	const data = typeof vueConfig.data === 'function'
 		? vueConfig.data.call(context)
 		: vueConfig.data || {};

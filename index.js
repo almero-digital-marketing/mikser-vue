@@ -53,14 +53,15 @@ module.exports = function (mikser) {
 				var csrConfig = webpackConfig(mikser)
 				csrConfig.entry = csr;
 				csrConfig.resolve.alias.app = layout.source;
-				if (!mikser.options.debug) {
-					csrConfig.plugins.push(new webpack.DefinePlugin({ 
-						'process.env': { 
-							NODE_ENV: '"production"',
-							VUE_APP: '"' + layout.meta.app + '"' 
-						} 
-					}));
+				let env = { 
+					VUE_APP: '"' + layout.meta.app + '"' 
 				}
+				if (!mikser.options.debug) {
+					env.NODE_ENV = '"production"';
+				}
+				csrConfig.plugins.push(new webpack.DefinePlugin({ 
+					'process.env': env
+				}));
 				csrConfig.output = {
 					path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
 					filename: path.basename(layout.meta.app) + '.js',

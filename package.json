@@ -1,6 +1,6 @@
 {
   "name": "mikser-vue",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "description": "Vue SSR rendering in the layouts",
   "main": "index.js",
   "repository": {
