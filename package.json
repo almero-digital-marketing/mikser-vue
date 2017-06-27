@@ -1,6 +1,6 @@
 {
   "name": "mikser-vue",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Vue SSR rendering in the layouts",
   "main": "index.js",
   "repository": {
@@ -16,6 +16,7 @@
     "bluebird": "^3.5.0",
     "css-loader": "^0.28.3",
     "front-matter-loader": "^0.1.2",
+    "lodash": "^4.17.4",
     "memory-fs": "^0.4.1",
     "node-sass": "^4.5.3",
     "sass-loader": "^6.0.5",
