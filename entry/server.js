@@ -45,6 +45,7 @@ module.exports = function (context) {
 		}
 	});
 	initalData.ptr = _.trimEnd(context.href('/'), '/')
+	initalData.options = context.options;
 
 	const dataMixin = {
 		beforeCreate() {
@@ -63,7 +64,7 @@ module.exports = function (context) {
 		let vueInstance = new Vue(vueConfig);
 		vueRenderer.renderToString(vueInstance, (err, result) => {
 			if (err) return reject(err);
-			let init = `<script>window.VUE_INITIAL_DATA_${context.layout.meta.app.toUpperCase()} = ${serialize(initalData, {isJSON: true})};</script>`;
+			let init = `<script>window.['VUE_INITIAL_DATA_${context.layout.meta.app.toUpperCase()}'] = ${serialize(initalData, {isJSON: true})};</script>`;
 			let app = `<script src="${initalData.ptr + context.layout.meta.vue.app}" async></script>`;
 			let content = init + result + app;
 			resolve(content);
