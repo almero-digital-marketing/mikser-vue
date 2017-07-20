@@ -1,97 +1,80 @@
 'use strict'
 
-var path = require('path')
-var fs = require("fs-extra-promise")
-var _ = require('lodash')
+var yaml = require('js-yaml');
+var path = require('path');
+var fs = require("fs-extra-promise");
+var _ = require('lodash');
 var Promise = require('bluebird');
-var webpack = require('webpack');
 
-var webpackConfig = require('./webpack.config');
+var webpack = require('webpack');
+var serverConfig = require('./build/webpack.server.config');
+var clientConfig = require('./build/webpack.client.config');
+
 var MemoryFS = require('memory-fs');
 var mfs = new MemoryFS();
 
-var ssr = require('./entry/server')
-var csr = path.join(__dirname, '/entry/client.js')
-
-var Vue = require('vue');
+var renderer = require('./lib/renderer')
 
 module.exports = function (mikser) {
+
+	function compileServer(layout) {
+		var config = serverConfig(mikser, layout)
+		let serverCompiler = webpack(config)
+		serverCompiler.outputFileSystem = mfs;
+		return new Promise((resolve, reject) => {
+			serverCompiler.run((err, stats) => {
+				if (err) return reject(err);
+				layout.vue.bundle = mfs.readFileSync(path.join(config.output.path, 'vue-ssr-server-bundle.json'), 'utf-8');
+				stats = stats.toJson()
+				stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
+				stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
+				layout.vue.modules = stats.modules
+					.map((module) => path.resolve(path.join(mikser.options.workingFolder, module.name)))
+					.filter((module) => _.startsWith(module, mikser.config.layoutsFolder) || _.startsWith(module, mikser.config.filesFolder) || _.startsWith(module, mikser.config.sharedFolder) || _.startsWith(module, mikser.config.pluginsFolder))
+					.filter((module) => module != layout.source)
+					resolve();
+			});
+		})
+	}
+
+	function compileClient(layout) {
+		var config = clientConfig(mikser, layout)
+		let appPattern = '**' + layout.vue.app;
+		if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {
+			mikser.config.watcher.ignored.push(appPattern);
+		}
+		let clientCompiler = webpack(config)
+		return new Promise((resolve, reject) => {
+			clientCompiler.run((err, stats) => {
+				if (err) return reject(err);
+				stats = stats.toJson()
+				stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
+				stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
+				resolve();
+			});
+		});
+	}
+
 	function build(layout) {
 		if (_.endsWith(layout.source, '.vue') && layout.meta.app){
 			var debug = mikser.debug('vue');
+			layout.vue = {};
 			if (layout.meta.app === true) {
-				layout.meta.app = path.basename(layout.source, '.vue');
+				layout.vue.app = path.basename(layout.source, '.vue');
+			} else {
+				layout.vue.app = layout.mata.app;
 			}
-			var ssrConfig = webpackConfig(mikser)
-			ssrConfig.entry = {
-				app: layout.source
-			}
-			ssrConfig.target = 'node';
-			ssrConfig.profile = true;
-			ssrConfig.output = {
-				path: path.dirname(layout.source),
-				filename: path.basename(layout.source),
-				libraryTarget: 'commonjs2'
-			};
-			let serverCompiler = webpack(ssrConfig)
-			serverCompiler.outputFileSystem = mfs;
-			return new Promise((resolve, reject) => {
-				serverCompiler.run((err, stats) => {
-					if (err) return reject(err);
-					let code = mfs.readFileSync(layout.source, 'utf8');
-					layout.code = code;
-					stats = stats.toJson()
-					stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
-					stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
-					layout.modules = stats.modules
-						.map((module) => path.resolve(path.join(mikser.options.workingFolder, module.name)))
-						.filter((module) => _.startsWith(module, mikser.config.layoutsFolder) || _.startsWith(module, mikser.config.filesFolder) || _.startsWith(module, mikser.config.sharedFolder) || _.startsWith(module, mikser.config.pluginsFolder))
-						.filter((module) => module != layout.source)
-						resolve();
-				});
-			}).then(() => {
-				var csrConfig = webpackConfig(mikser)
-				csrConfig.entry = csr;
-				csrConfig.resolve.alias.app = layout.source;
-				let env = { 
-					VUE_APP: '"' + layout.meta.app + '"' 
-				}
-				if (!mikser.options.debug) {
-					env.NODE_ENV = '"production"';
-				}
-				csrConfig.plugins.push(new webpack.DefinePlugin({ 
-					'process.env': env
-				}));
-				csrConfig.output = {
-					path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
-					filename: path.basename(layout.meta.app) + '.js',
-				}
-				layout.meta.vue = {
-					app: path.join(path.dirname(layout._id), layout.meta.app + '.js')
-				}
-				let appPattern = '**' + layout.meta.app;
-				if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {
-					mikser.config.watcher.ignored.push(appPattern);
-				}
-				let clientCompiler = webpack(csrConfig)
-				return new Promise((resolve, reject) => {
-					clientCompiler.run((err, stats) => {
-						if (err) return reject(err);
-						stats = stats.toJson()
-						stats.errors.forEach((err) => mikser.diagnostics.log('error', err))
-						stats.warnings.forEach((err) => mikser.diagnostics.log('warning', err))
-						resolve();
-					});
-				});
-			})
-			.then(() => mikser.tools.runtimeSync())
-			.return(true);
+			layout.vue.client = path.join(path.dirname(layout._id), layout.vue.app + '.js');
+			return compileServer(layout)
+				.then(() => compileClient(layout))
+				.then(() => mikser.tools.runtimeSync())
+				.return(true);
 		}
 		return Promise.resolve(false);
 	}
 
 	function reloadModules(file) {
-		return mikser.database.findLayouts({modules: { $in: [file]}}).then((layouts) => {
+		return mikser.database.findLayouts({"vue.modules": { $in: [file]}}).then((layouts) => {
 			return Promise.map(layouts, (layout) => {
 				return mikser.scheduler.scheduleLayout(layout._id);
 			});
@@ -114,7 +97,7 @@ module.exports = function (mikser) {
 		pattern: '**/*.vue', 
 		render: function(context) {
 			if (!context.layout || !context.layout.template) return context.content;
-			return context.async(ssr(context))
+			return context.async(renderer(context))
 		}
 	})
 }
