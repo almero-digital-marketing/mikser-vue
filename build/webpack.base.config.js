@@ -1,6 +1,8 @@
+const webpack = require('webpack')
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
+var path = require('path');
 
-module.exports = function (mikser) {
+module.exports = function (mikser, layout) {
 	var config = {
 		devtool: '#cheap-module-source-map',
 		resolve: {
@@ -12,10 +14,15 @@ module.exports = function (mikser) {
 				'shared': mikser.config.sharedFolder,
 				'runtime': mikser.config.runtimeFilesFolder,
 				'plugins': mikser.config.pluginsFolder,
+				'routes': path.join(mikser.config.runtimeFolder, 'vue-routes.js'),
 			}
 		},
 		plugins: [
-			new FriendlyErrorsPlugin()
+			new FriendlyErrorsPlugin(),
+			new webpack.DefinePlugin({
+				'process.env.VUE_APP': '"' + layout.vue.app + '"',
+				'process.env.NODE_ENV': mikser.options.debug ? '"development"' : '"production"',
+			}),
 		],
 		module: {
 			noParse: /es6-promise\.js$/,
@@ -35,7 +42,10 @@ module.exports = function (mikser) {
 				},{
 					test: /\.js$/,
 					loader: 'babel-loader',
-					exclude: /node_modules/
+					exclude: /node_modules/,
+					query: {
+						presets: ['es2015'],
+					}
 				}
 			]
 		},

@@ -6,7 +6,7 @@ const VueSSRServerPlugin = require('vue-server-renderer/server-plugin')
 const path = require('path');
 
 module.exports = function (mikser, layout) {
-	return merge(base(mikser), {
+	return merge(base(mikser, layout), {
 		target: 'node',
 		devtool: '#source-map',
 		entry: path.join(__dirname, '../lib/entry-server.js'),
@@ -27,8 +27,6 @@ module.exports = function (mikser, layout) {
 		}),
 		plugins: [
 			new webpack.DefinePlugin({
-				'process.env.VUE_APP': '"' + layout.vue.app + '"',
-				'process.env.NODE_ENV': mikser.options.debug ? '"development"' : '"production"',
 				'process.env.VUE_ENV': '"server"'
 			}),
 			new VueSSRServerPlugin()

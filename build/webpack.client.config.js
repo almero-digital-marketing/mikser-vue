@@ -5,7 +5,7 @@ const VueSSRClientPlugin = require('vue-server-renderer/client-plugin')
 const path = require('path');
 
 module.exports = function (mikser, layout) {
-	return merge(base(mikser), {
+	return merge(base(mikser, layout), {
 		entry: path.join(__dirname, '../lib/entry-client.js'),
 		output: {
 			path: path.join(mikser.config.runtimeFilesFolder, path.dirname(layout._id)),
@@ -18,8 +18,6 @@ module.exports = function (mikser, layout) {
 		},
 		plugins: [
 			new webpack.DefinePlugin({
-				'process.env.VUE_APP': '"' + layout.vue.app + '"',
-				'process.env.NODE_ENV': mikser.options.debug ? '"development"' : '"production"',
 				'process.env.VUE_ENV': '"client"'
 			}),
 			new VueSSRClientPlugin()

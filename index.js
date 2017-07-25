@@ -65,10 +65,25 @@ module.exports = function (mikser) {
 				layout.vue.app = layout.mata.app;
 			}
 			layout.vue.client = path.join(path.dirname(layout._id), layout.vue.app + '.js');
-			return compileServer(layout)
-				.then(() => compileClient(layout))
-				.then(() => mikser.tools.runtimeSync())
-				.return(true);
+			return mikser.database.findDocuments({'meta.route': { $exists: true }})
+				.then((routes) => {
+					let exp = routes.map((entity, index) => {
+						return 'import ROUTE_' + index + ' from "layouts' + entity.meta.route + '"';
+					}).join("\n")
+					exp += '\nexport default [' + routes.map((entity, index) => {
+						let url = mikser.config.cleanUrls ? entity.url.replace('/index.html','') : entity.url;
+						return '{path: "' + url + '", ' +
+						'component: ROUTE_' + index + ', ' + 
+						'meta:' + JSON.stringify(entity.meta) + '},'
+					}).join("\n") + ']'
+					return fs.writeFileAsync(path.join(mikser.config.runtimeFolder,'vue-routes.js'), exp);
+				})
+				.then(() => {
+					return compileServer(layout)
+						.then(() => compileClient(layout))
+						.then(() => mikser.tools.runtimeSync())
+						.return(true);
+				});
 		}
 		return Promise.resolve(false);
 	}
@@ -100,4 +115,5 @@ module.exports = function (mikser) {
 			return context.async(renderer(context))
 		}
 	})
+	return {}
 }

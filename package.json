@@ -1,6 +1,6 @@
 {
   "name": "mikser-vue",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Vue SSR rendering in the layouts",
   "main": "index.js",
   "repository": {
@@ -31,6 +31,7 @@
     "vue-template-compiler": "^2.4.1",
     "vuex-router-sync": "^4.2.0",
     "webpack": "^3.3.0",
-    "webpack-merge": "^4.1.0"
+    "webpack-merge": "^4.1.0",
+    "webpack-node-externals": "^1.6.0"
   }
 }
