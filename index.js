@@ -39,9 +39,10 @@ module.exports = function (mikser) {
 
 	function compileClient(layout) {
 		var config = clientConfig(mikser, layout)
-		let appPattern = '**' + layout.vue.app;
+		let appPattern = '**' + path.join(path.dirname(layout._id), config.output.filename);
 		if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {
 			mikser.config.watcher.ignored.push(appPattern);
+			console.log(mikser.config.watcher.ignored)
 		}
 		let clientCompiler = webpack(config)
 		return new Promise((resolve, reject) => {
@@ -79,8 +80,7 @@ module.exports = function (mikser) {
 					return fs.writeFileAsync(path.join(mikser.config.runtimeFolder,'vue-routes.js'), exp);
 				})
 				.then(() => {
-					return compileServer(layout)
-						.then(() => compileClient(layout))
+					return Promise.join(compileServer(layout),compileClient(layout))
 						.then(() => mikser.tools.runtimeSync())
 						.return(true);
 				});
@@ -101,7 +101,6 @@ module.exports = function (mikser) {
 			if (stats) return mikser.database.layouts.save(layout);
 		})
 	});
-	mikser.on('mikser.manager.importLayout', build);
 
 	mikser.on('mikser.watcher.layoutAction', (event, file) => reloadModules(path.join(mikser.config.layoutsFolder,file)));
 	mikser.on('mikser.watcher.fileAction', (event, file) => reloadModules(file));
