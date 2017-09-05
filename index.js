@@ -42,7 +42,6 @@ module.exports = function (mikser) {
 		let appPattern = '**' + path.join(path.dirname(layout._id), config.output.filename);
 		if (mikser.config.watcher.ignored.indexOf(appPattern) == -1) {
 			mikser.config.watcher.ignored.push(appPattern);
-			console.log(mikser.config.watcher.ignored)
 		}
 		let clientCompiler = webpack(config)
 		return new Promise((resolve, reject) => {
@@ -72,7 +71,8 @@ module.exports = function (mikser) {
 						return 'import ROUTE_' + index + ' from "layouts' + entity.meta.route + '"';
 					}).join("\n")
 					exp += '\nexport default [' + routes.map((entity, index) => {
-						let url = mikser.config.cleanUrls ? entity.url.replace('/index.html','') : entity.url;
+						let url = mikser.config.cleanUrls ? 
+							entity.url.replace('/index.html','') || '/' : entity.url;
 						return '{path: "' + url + '", ' +
 						'component: ROUTE_' + index + ', ' + 
 						'meta:' + JSON.stringify(entity.meta) + '},'
