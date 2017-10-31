@@ -19,12 +19,11 @@ module.exports = function (mikser, layout) {
 				'layout.vue': layout.source
 			}
 		},
-		// https://webpack.js.org/configuration/externals/#externals
-		// https://github.com/liady/webpack-node-externals
-		externals: nodeExternals({
-			// do not externalize CSS files in case we need to import it from a dep
-			whitelist: /\.css$/
-		}),
+		performance: {
+			hints: false,
+			maxAssetSize: Infinity
+		},
+		externals: [],
 		plugins: [
 			new webpack.DefinePlugin({
 				'process.env.VUE_ENV': '"server"'

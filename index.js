@@ -62,21 +62,24 @@ module.exports = function (mikser) {
 			if (layout.meta.app === true) {
 				layout.vue.app = path.basename(layout.source, '.vue');
 			} else {
-				layout.vue.app = layout.mata.app;
+				layout.vue.app = layout.meta.app;
 			}
 			layout.vue.client = path.join(path.dirname(layout._id), layout.vue.app + '.js');
 			return mikser.database.findDocuments({'meta.route': { $exists: true }})
 				.then((routes) => {
-					let exp = routes.map((entity, index) => {
-						return 'import ROUTE_' + index + ' from "layouts' + entity.meta.route + '"';
-					}).join("\n")
-					exp += '\nexport default [' + routes.map((entity, index) => {
-						let url = mikser.config.cleanUrls ? 
-							entity.url.replace('/index.html','') || '/' : entity.url;
-						return '{path: "' + url + '", ' +
-						'component: ROUTE_' + index + ', ' + 
-						'meta:' + JSON.stringify(entity.meta) + '},'
-					}).join("\n") + ']'
+					let exp = 'export default []'
+					if (routes.length) {
+						exp = routes.map((entity, index) => {
+							return 'import ROUTE_' + index + ' from "layouts' + entity.meta.route + '"';
+						}).join("\n")
+						exp += '\nexport default [' + routes.map((entity, index) => {
+							let url = mikser.config.cleanUrls ? 
+								entity.url.replace('/index.html','') || '/' : entity.url;
+							return '{path: "' + url + '", ' +
+							'component: ROUTE_' + index + ', ' + 
+							'meta:' + JSON.stringify(entity.meta) + '},'
+						}).join("\n") + ']'
+					}
 					return fs.writeFileAsync(path.join(mikser.config.runtimeFolder,'vue-routes.js'), exp);
 				})
 				.then(() => {
@@ -96,11 +99,15 @@ module.exports = function (mikser) {
 		});
 	}
 
-	mikser.on('mikser.scheduler.scheduleLayout', (layout) => {
-		return build(layout).then((stats) => {
-			if (stats) return mikser.database.layouts.save(layout);
-		})
+	mikser.on('mikser.manager.importLayout', (layout) => {
+		return build(layout);
 	});
+
+	// mikser.on('mikser.scheduler.scheduleLayout', (layout) => {
+	// 	return build(layout).then((stats) => {
+	// 		if (stats) return mikser.database.layouts.save(layout);
+	// 	})
+	// });
 
 	mikser.on('mikser.watcher.layoutAction', (event, file) => reloadModules(path.join(mikser.config.layoutsFolder,file)));
 	mikser.on('mikser.watcher.fileAction', (event, file) => reloadModules(file));
