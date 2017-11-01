@@ -1,6 +1,6 @@
 const webpack = require('webpack')
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
-var path = require('path');
+const path = require('path')
 
 module.exports = function (mikser, layout) {
 	var config = {
@@ -21,11 +21,11 @@ module.exports = function (mikser, layout) {
 			new FriendlyErrorsPlugin(),
 			new webpack.DefinePlugin({
 				'process.env.VUE_APP': '"' + layout.vue.app + '"',
+				'process.env.VUE_SSR': layout.vue.ssr,
 				'process.env.NODE_ENV': mikser.options.debug ? '"development"' : '"production"',
 			}),
 		],
 		module: {
-			noParse: /es6-promise\.js$/,
 			rules: [
 				{
 					test: mikser.config.layoutsFolder,

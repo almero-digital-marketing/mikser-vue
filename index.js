@@ -65,6 +65,11 @@ module.exports = function (mikser) {
 				layout.vue.app = layout.meta.app;
 			}
 			layout.vue.client = path.join(path.dirname(layout._id), layout.vue.app + '.js');
+			if (layout.meta.ssr == undefined || layout.meta.ssr) {
+				layout.vue.ssr = true;
+			} else {
+				layout.vue.ssr = false;
+			}
 			return mikser.database.findDocuments({'meta.route': { $exists: true }})
 				.then((routes) => {
 					let exp = 'export default []'
@@ -94,7 +99,7 @@ module.exports = function (mikser) {
 	function reloadModules(file) {
 		return mikser.database.findLayouts({"vue.modules": { $in: [file]}}).then((layouts) => {
 			return Promise.map(layouts, (layout) => {
-				return mikser.scheduler.scheduleLayout(layout._id);
+				return build(layout).then(() => mikser.scheduler.scheduleLayout(layout._id));
 			});
 		});
 	}
@@ -102,12 +107,6 @@ module.exports = function (mikser) {
 	mikser.on('mikser.manager.importLayout', (layout) => {
 		return build(layout);
 	});
-
-	// mikser.on('mikser.scheduler.scheduleLayout', (layout) => {
-	// 	return build(layout).then((stats) => {
-	// 		if (stats) return mikser.database.layouts.save(layout);
-	// 	})
-	// });
 
 	mikser.on('mikser.watcher.layoutAction', (event, file) => reloadModules(path.join(mikser.config.layoutsFolder,file)));
 	mikser.on('mikser.watcher.fileAction', (event, file) => reloadModules(file));
@@ -118,7 +117,11 @@ module.exports = function (mikser) {
 		pattern: '**/*.vue', 
 		render: function(context) {
 			if (!context.layout || !context.layout.template) return context.content;
-			return context.async(renderer(context))
+			let result = renderer(context);
+			if (result.then) {
+				return context.async(result);
+			}
+			return result;
 		}
 	})
 	return {}
