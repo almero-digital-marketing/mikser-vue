@@ -26,6 +26,7 @@ module.exports = function (mikser, layout) {
 			}),
 		],
 		module: {
+			noParse: /es6-promise\.js$/,
 			rules: [
 				{
 					test: mikser.config.layoutsFolder,
@@ -42,10 +43,7 @@ module.exports = function (mikser, layout) {
 				},{
 					test: /\.js$/,
 					loader: 'babel-loader',
-					exclude: /node_modules/,
-					query: {
-						presets: ['es2015'],
-					}
+					exclude: /node_modules/
 				}
 			]
 		},

@@ -22,7 +22,9 @@ module.exports = function (mikser) {
 		let serverCompiler = webpack(config)
 		serverCompiler.outputFileSystem = mfs;
 		return new Promise((resolve, reject) => {
+			JSON.useDateParser(true)
 			serverCompiler.run((err, stats) => {
+				JSON.useDateParser(false)
 				if (err) return reject(err);
 				layout.vue.bundle = mfs.readFileSync(path.join(config.output.path, 'vue-ssr-server-bundle.json'), 'utf-8');
 				stats = stats.toJson()
