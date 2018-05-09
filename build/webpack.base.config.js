@@ -36,14 +36,17 @@ module.exports = function (mikser, layout) {
 					loader: 'vue-loader',
 					options: {
 						loaders: {
-							js: 'babel-loader',
+							js: 'babel-loader?presets[]=env',
 							scss: 'css-loader'
 						}
 					}
 				},{
 					test: /\.js$/,
 					loader: 'babel-loader',
-					exclude: /node_modules/
+					exclude: /node_modules/,
+					query : {
+						presets: [require.resolve('babel-preset-env')]
+					},
 				}
 			]
 		},
