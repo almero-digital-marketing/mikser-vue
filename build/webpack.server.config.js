@@ -23,7 +23,9 @@ module.exports = function (mikser, layout) {
 			hints: false,
 			maxAssetSize: Infinity
 		},
-		externals: [],
+		externals: {
+			canvas: "commonjs canvas"
+		},
 		plugins: [
 			new webpack.DefinePlugin({
 				'process.env.VUE_ENV': '"server"'
