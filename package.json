@@ -24,7 +24,7 @@
     "memory-fs": "^0.4.1",
     "node-sass": "^4.7.2",
     "sass-loader": "^6.0.6",
-    "serialize-javascript": "^1.4.0",
+    "serialize-javascript": "^3.1.0",
     "traverse": "^0.6.6",
     "vue": "^2.5.13",
     "vue-loader": "^14.1.1",
